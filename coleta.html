@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nova Solicitação</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@600;700;800&family=Source+Sans+3:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="top-bar">
+  <a href="menu.html" aria-label="Voltar">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>
+  </a>
+  <div>
+    <div class="titulo">Nova Solicitação</div>
+    <div class="subtitulo">Coletado por: <span id="nome-coletor">—</span></div>
+  </div>
+</div>
+
+<div class="container-mobile" style="padding-top:24px;">
+  <form id="form-coleta" style="display:flex;flex-direction:column;gap:18px;">
+
+    <div>
+      <label for="nome">Nome completo</label>
+      <input id="nome" class="field" type="text" placeholder="Ex.: Maria da Silva" required>
+    </div>
+
+    <div>
+      <label for="endereco">Endereço (rua e número)</label>
+      <input id="endereco" class="field" type="text" placeholder="Ex.: Rua das Flores, 123">
+    </div>
+
+    <div>
+      <label for="bairro">Bairro</label>
+      <input id="bairro" class="field" type="text" placeholder="Ex.: Centro" required>
+    </div>
+
+    <div>
+      <label for="telefone">Telefone</label>
+      <input id="telefone" class="field" type="tel" placeholder="(88) 9 9999-9999">
+    </div>
+
+    <div>
+      <label for="tipo">Tipo de solicitação</label>
+      <select id="tipo" class="field">
+        <option value="">Selecione...</option>
+        <option>Infraestrutura / Asfalto</option>
+        <option>Iluminação pública</option>
+        <option>Saneamento / Água e esgoto</option>
+        <option>Saúde</option>
+        <option>Educação</option>
+        <option>Segurança</option>
+        <option>Assistência social</option>
+        <option>Outro</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="detalhe">Detalhe do pedido</label>
+      <textarea id="detalhe" class="field" rows="2" placeholder="Descreva o que foi solicitado"></textarea>
+    </div>
+
+    <div>
+      <label for="observacoes">Observações</label>
+      <textarea id="observacoes" class="field" rows="3" placeholder="Informações adicionais (opcional)"></textarea>
+    </div>
+
+    <button type="submit" class="btn" id="btn-salvar" style="margin-top:8px;">Salvar Solicitação</button>
+    <div class="error-msg" id="msg-erro"></div>
+    <div class="success-msg" id="msg-sucesso"></div>
+
+  </form>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/session.js"></script>
+<script>
+  exigirLogin();
+  document.getElementById('nome-coletor').textContent = getNomeSessao();
+
+  document.getElementById('form-coleta').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btn-salvar');
+    const msgErro = document.getElementById('msg-erro');
+    const msgSucesso = document.getElementById('msg-sucesso');
+    msgErro.textContent = '';
+    msgSucesso.textContent = '';
+
+    const dados = {
+      pin: getPin(),
+      nomeEleitor: document.getElementById('nome').value.trim(),
+      endereco: document.getElementById('endereco').value.trim(),
+      bairro: document.getElementById('bairro').value.trim(),
+      telefone: document.getElementById('telefone').value.trim(),
+      tipo: document.getElementById('tipo').value,
+      detalhe: document.getElementById('detalhe').value.trim(),
+      observacoes: document.getElementById('observacoes').value.trim()
+    };
+
+    if (!dados.nomeEleitor || !dados.bairro) {
+      msgErro.textContent = 'Nome e bairro são obrigatórios.';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    chamarAPI('salvar', dados).then(function(resp) {
+      btn.disabled = false;
+      btn.textContent = 'Salvar Solicitação';
+      if (resp.ok) {
+        msgSucesso.textContent = 'Solicitação registrada com sucesso!';
+        document.getElementById('form-coleta').reset();
+      } else {
+        msgErro.textContent = resp.erro || 'Não foi possível salvar.';
+      }
+    }).catch(function() {
+      btn.disabled = false;
+      btn.textContent = 'Salvar Solicitação';
+      msgErro.textContent = 'Não foi possível conectar. Verifique sua internet.';
+    });
+  });
+</script>
+</body>
+</html>

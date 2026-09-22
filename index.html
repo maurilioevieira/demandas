@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coletor de Demandas — Login</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@600;700;800&family=Source+Sans+3:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="container-mobile" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+
+  <div style="text-align:center;margin-bottom:32px;">
+    <div style="font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--c-label);font-weight:600;">Atendimento ao eleitor</div>
+    <h1 style="font-size:28px;font-weight:800;color:var(--c-accent);margin-top:10px;">Coletor de Demandas</h1>
+    <div style="font-size:15px;color:var(--c-text-muted);margin-top:4px;">Uso exclusivo do mandato</div>
+  </div>
+
+  <div class="card" style="width:100%;">
+    <form id="form-login">
+      <label for="pin">Digite seu PIN de acesso</label>
+      <input id="pin" class="field pin-field" type="password" inputmode="numeric" maxlength="6" autocomplete="off" required>
+      <button type="submit" class="btn" style="margin-top:18px;" id="btn-entrar">Entrar</button>
+      <div class="error-msg" id="msg-erro"></div>
+    </form>
+  </div>
+
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/session.js"></script>
+<script>
+  document.getElementById('form-login').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const pin = document.getElementById('pin').value.trim();
+    const btn = document.getElementById('btn-entrar');
+    const msg = document.getElementById('msg-erro');
+    msg.textContent = '';
+
+    if (pin.length !== 6) {
+      msg.textContent = 'O PIN deve ter 6 dígitos.';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Verificando...';
+
+    chamarAPI('login', { pin: pin }).then(function(resp) {
+      if (resp.ok) {
+        salvarSessao(pin, resp.nome);
+        window.location.href = 'menu.html';
+      } else {
+        msg.textContent = resp.erro || 'PIN inválido.';
+        btn.disabled = false;
+        btn.textContent = 'Entrar';
+      }
+    }).catch(function() {
+      msg.textContent = 'Não foi possível conectar. Verifique sua internet.';
+      btn.disabled = false;
+      btn.textContent = 'Entrar';
+    });
+  });
+</script>
+</body>
+</html>

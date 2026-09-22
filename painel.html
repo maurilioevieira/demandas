@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel de Solicitações</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@600;700;800&family=Source+Sans+3:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="painel-wrap">
+
+  <div class="painel-header">
+    <div>
+      <a href="menu.html" class="btn-text no-print" style="padding:0 0 6px;">&larr; Voltar ao menu</a>
+      <div style="font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--c-label);font-weight:600;">Atendimento ao eleitor</div>
+      <h1 style="font-size:26px;font-weight:800;margin-top:4px;">Painel de Solicitações</h1>
+    </div>
+    <button class="btn no-print" id="btn-exportar" style="width:auto;">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"></path><path d="M7 10l5 5 5-5"></path><path d="M20 21H4"></path></svg>
+      Exportar PDF
+    </button>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">Total de solicitações</div>
+      <div class="value" id="stat-total">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Bairro com mais pedidos</div>
+      <div class="value" id="stat-bairro">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Tipo mais pedido</div>
+      <div class="value" id="stat-tipo">—</div>
+    </div>
+  </div>
+
+  <div class="filtros no-print">
+    <select id="filtro-bairro"><option value="">Bairro: Todos</option></select>
+    <select id="filtro-tipo"><option value="">Tipo: Todos</option></select>
+    <select id="filtro-coletor"><option value="">Coletado por: Todos</option></select>
+    <input id="filtro-busca" type="text" placeholder="Buscar por nome, rua ou bairro...">
+  </div>
+
+  <div class="tabela-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Endereço</th>
+          <th>Bairro</th>
+          <th>Solicitação</th>
+          <th>Registrado por</th>
+          <th>Data</th>
+        </tr>
+      </thead>
+      <tbody id="tabela-corpo">
+        <tr><td colspan="6" class="vazio">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/session.js"></script>
+<script>
+  exigirLogin();
+
+  let TODAS_SOLICITACOES = [];
+
+  function textoTipo(r) {
+    return r.detalhe ? (r.tipo + ' — ' + r.detalhe) : r.tipo;
+  }
+
+  function preencherFiltro(id, valores) {
+    const select = document.getElementById(id);
+    valores.forEach(function(v) {
+      if (!v) return;
+      const opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = v;
+      select.appendChild(opt);
+    });
+  }
+
+  function valoresUnicos(lista, campo) {
+    return Array.from(new Set(lista.map(function(r) { return r[campo]; }))).sort();
+  }
+
+  function renderTabela(lista) {
+    const corpo = document.getElementById('tabela-corpo');
+    corpo.innerHTML = '';
+
+    if (lista.length === 0) {
+      corpo.innerHTML = '<tr><td colspan="6" class="vazio">Nenhuma solicitação encontrada.</td></tr>';
+      return;
+    }
+
+    lista.forEach(function(r) {
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + r.nome + '</td>' +
+        '<td>' + (r.endereco || '—') + '</td>' +
+        '<td>' + r.bairro + '</td>' +
+        '<td>' + textoTipo(r) + '</td>' +
+        '<td><span class="badge">' + r.registradoPor + '</span></td>' +
+        '<td>' + r.timestamp + '</td>';
+      corpo.appendChild(tr);
+    });
+  }
+
+  function calcularEstatisticas(lista) {
+    document.getElementById('stat-total').textContent = lista.length;
+
+    function itemMaisFrequente(campo) {
+      const contagem = {};
+      lista.forEach(function(r) {
+        const v = r[campo];
+        if (!v) return;
+        contagem[v] = (contagem[v] || 0) + 1;
+      });
+      let melhor = '—', max = 0;
+      Object.keys(contagem).forEach(function(k) {
+        if (contagem[k] > max) { max = contagem[k]; melhor = k; }
+      });
+      return melhor;
+    }
+
+    document.getElementById('stat-bairro').textContent = itemMaisFrequente('bairro');
+    document.getElementById('stat-tipo').textContent = itemMaisFrequente('tipo');
+  }
+
+  function aplicarFiltros() {
+    const bairro = document.getElementById('filtro-bairro').value;
+    const tipo = document.getElementById('filtro-tipo').value;
+    const coletor = document.getElementById('filtro-coletor').value;
+    const busca = document.getElementById('filtro-busca').value.trim().toLowerCase();
+
+    const filtradas = TODAS_SOLICITACOES.filter(function(r) {
+      if (bairro && r.bairro !== bairro) return false;
+      if (tipo && r.tipo !== tipo) return false;
+      if (coletor && r.registradoPor !== coletor) return false;
+      if (busca) {
+        const alvo = (r.nome + ' ' + r.endereco + ' ' + r.bairro).toLowerCase();
+        if (alvo.indexOf(busca) === -1) return false;
+      }
+      return true;
+    });
+
+    renderTabela(filtradas);
+    calcularEstatisticas(filtradas);
+  }
+
+  ['filtro-bairro', 'filtro-tipo', 'filtro-coletor'].forEach(function(id) {
+    document.getElementById(id).addEventListener('change', aplicarFiltros);
+  });
+  document.getElementById('filtro-busca').addEventListener('input', aplicarFiltros);
+
+  document.getElementById('btn-exportar').addEventListener('click', function() {
+    window.print();
+  });
+
+  chamarAPI('listar', { pin: getPin() }).then(function(resp) {
+    if (!resp.ok) {
+      document.getElementById('tabela-corpo').innerHTML =
+        '<tr><td colspan="6" class="vazio">' + (resp.erro || 'Erro ao carregar dados.') + '</td></tr>';
+      return;
+    }
+    TODAS_SOLICITACOES = resp.solicitacoes;
+    preencherFiltro('filtro-bairro', valoresUnicos(TODAS_SOLICITACOES, 'bairro'));
+    preencherFiltro('filtro-tipo', valoresUnicos(TODAS_SOLICITACOES, 'tipo'));
+    preencherFiltro('filtro-coletor', valoresUnicos(TODAS_SOLICITACOES, 'registradoPor'));
+    renderTabela(TODAS_SOLICITACOES);
+    calcularEstatisticas(TODAS_SOLICITACOES);
+  }).catch(function() {
+    document.getElementById('tabela-corpo').innerHTML =
+      '<tr><td colspan="6" class="vazio">Não foi possível conectar. Verifique sua internet.</td></tr>';
+  });
+</script>
+</body>
+</html>
