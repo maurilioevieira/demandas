@@ -38,6 +38,10 @@
       <div class="value" id="stat-total">—</div>
     </div>
     <div class="stat-card">
+      <div class="label">Atendidas</div>
+      <div class="value" id="stat-atendidas">—</div>
+    </div>
+    <div class="stat-card">
       <div class="label">Bairro com mais pedidos</div>
       <div class="value" id="stat-bairro">—</div>
     </div>
@@ -51,6 +55,11 @@
     <select id="filtro-bairro"><option value="">Bairro: Todos</option></select>
     <select id="filtro-tipo"><option value="">Tipo: Todos</option></select>
     <select id="filtro-coletor"><option value="">Coletado por: Todos</option></select>
+    <select id="filtro-status">
+      <option value="">Status: Todos</option>
+      <option value="pendente">Pendente</option>
+      <option value="atendida">Atendida</option>
+    </select>
     <input id="filtro-busca" type="text" placeholder="Buscar por nome, rua ou bairro...">
   </div>
 
@@ -62,13 +71,14 @@
           <th>Endereço</th>
           <th>Bairro</th>
           <th>Solicitação</th>
+          <th>Status</th>
           <th>Registrado por</th>
           <th>Data</th>
           <th class="no-print">Ações</th>
         </tr>
       </thead>
       <tbody id="tabela-corpo">
-        <tr><td colspan="7" class="vazio">Carregando...</td></tr>
+        <tr><td colspan="8" class="vazio">Carregando...</td></tr>
       </tbody>
     </table>
   </div>
@@ -95,9 +105,15 @@
 
   const ICONE_EDITAR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>';
   const ICONE_EXCLUIR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>';
+  const ICONE_CHECK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>';
+  const ICONE_DESFAZER = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path></svg>';
 
   function textoTipo(r) {
     return r.detalhe ? (r.tipo + ' — ' + r.detalhe) : r.tipo;
+  }
+
+  function hojeFormatado() {
+    return new Date().toLocaleDateString('pt-BR');
   }
 
   function preencherFiltro(id, valores) {
@@ -120,17 +136,27 @@
     corpo.innerHTML = '';
 
     if (lista.length === 0) {
-      corpo.innerHTML = '<tr><td colspan="7" class="vazio">Nenhuma solicitação encontrada.</td></tr>';
+      corpo.innerHTML = '<tr><td colspan="8" class="vazio">Nenhuma solicitação encontrada.</td></tr>';
       return;
     }
 
     lista.forEach(function(r) {
       const tr = document.createElement('tr');
+
+      const statusBadge = r.atendida
+        ? '<span class="badge-atendida">Atendida em ' + r.atendidaEm + '</span>'
+        : '<span class="badge">Pendente</span>';
+
+      const statusBotao = r.atendida
+        ? '<button class="icon-btn no-print desfazer" data-id="' + r.id + '" aria-label="Marcar como pendente de novo">' + ICONE_DESFAZER + '</button>'
+        : '<button class="icon-btn no-print marcar" data-id="' + r.id + '" aria-label="Marcar como atendida">' + ICONE_CHECK + '</button>';
+
       tr.innerHTML =
         '<td>' + r.nome + '</td>' +
         '<td>' + (r.endereco || '—') + '</td>' +
         '<td>' + r.bairro + '</td>' +
         '<td>' + textoTipo(r) + '</td>' +
+        '<td class="status-cell">' + statusBadge + statusBotao + '</td>' +
         '<td><span class="badge">' + r.registradoPor + '</span></td>' +
         '<td>' + r.timestamp + '</td>' +
         '<td class="acoes-cell no-print">' +
@@ -143,6 +169,9 @@
 
   function calcularEstatisticas(lista) {
     document.getElementById('stat-total').textContent = lista.length;
+
+    const atendidas = lista.filter(function(r) { return r.atendida; }).length;
+    document.getElementById('stat-atendidas').textContent = atendidas + ' de ' + lista.length;
 
     function itemMaisFrequente(campo) {
       const contagem = {};
@@ -166,12 +195,15 @@
     const bairro = document.getElementById('filtro-bairro').value;
     const tipo = document.getElementById('filtro-tipo').value;
     const coletor = document.getElementById('filtro-coletor').value;
+    const status = document.getElementById('filtro-status').value;
     const busca = document.getElementById('filtro-busca').value.trim().toLowerCase();
 
     LISTA_FILTRADA = TODAS_SOLICITACOES.filter(function(r) {
       if (bairro && r.bairro !== bairro) return false;
       if (tipo && r.tipo !== tipo) return false;
       if (coletor && r.registradoPor !== coletor) return false;
+      if (status === 'pendente' && r.atendida) return false;
+      if (status === 'atendida' && !r.atendida) return false;
       if (busca) {
         const alvo = (r.nome + ' ' + r.endereco + ' ' + r.bairro).toLowerCase();
         if (alvo.indexOf(busca) === -1) return false;
@@ -183,21 +215,16 @@
     calcularEstatisticas(LISTA_FILTRADA);
   }
 
-  ['filtro-bairro', 'filtro-tipo', 'filtro-coletor'].forEach(function(id) {
+  ['filtro-bairro', 'filtro-tipo', 'filtro-coletor', 'filtro-status'].forEach(function(id) {
     document.getElementById(id).addEventListener('change', aplicarFiltros);
   });
   document.getElementById('filtro-busca').addEventListener('input', aplicarFiltros);
 
-  /**
-   * Editar/excluir usam "delegação de evento": em vez de colocar um
-   * listener em cada botão (que teria que ser refeito toda vez que
-   * a tabela é redesenhada), um único listener no <tbody> escuta
-   * cliques em qualquer botão dentro dele, identificando qual pela
-   * classe e pelo data-id.
-   */
   document.getElementById('tabela-corpo').addEventListener('click', function(e) {
     const btnEditar = e.target.closest('.icon-btn.editar');
     const btnExcluir = e.target.closest('.icon-btn.excluir');
+    const btnMarcar = e.target.closest('.icon-btn.marcar');
+    const btnDesfazer = e.target.closest('.icon-btn.desfazer');
 
     if (btnEditar) {
       const id = Number(btnEditar.dataset.id);
@@ -230,6 +257,31 @@
         alert('Não foi possível conectar. Verifique sua internet.');
         btnExcluir.disabled = false;
       });
+      return;
+    }
+
+    if (btnMarcar || btnDesfazer) {
+      const btn = btnMarcar || btnDesfazer;
+      const novoStatus = !!btnMarcar; // true = marcando como atendida, false = desfazendo
+      const id = Number(btn.dataset.id);
+
+      btn.disabled = true;
+      apiMarcarAtendida(getPin(), id, novoStatus).then(function(resp) {
+        if (resp.ok) {
+          const registro = TODAS_SOLICITACOES.find(function(r) { return r.id === id; });
+          if (registro) {
+            registro.atendida = novoStatus;
+            registro.atendidaEm = novoStatus ? hojeFormatado() : null;
+          }
+          aplicarFiltros();
+        } else {
+          alert(resp.erro || 'Não foi possível atualizar o status.');
+          btn.disabled = false;
+        }
+      }).catch(function() {
+        alert('Não foi possível conectar. Verifique sua internet.');
+        btn.disabled = false;
+      });
     }
   });
 
@@ -250,9 +302,17 @@
 
     doc.autoTable({
       startY: 30,
-      head: [['Nome', 'Endereço', 'Bairro', 'Solicitação', 'Registrado por', 'Data']],
+      head: [['Nome', 'Endereço', 'Bairro', 'Solicitação', 'Status', 'Registrado por', 'Data']],
       body: LISTA_FILTRADA.map(function(r) {
-        return [r.nome, r.endereco || '—', r.bairro, textoTipo(r), r.registradoPor, r.timestamp];
+        return [
+          r.nome,
+          r.endereco || '—',
+          r.bairro,
+          textoTipo(r),
+          r.atendida ? ('Atendida em ' + r.atendidaEm) : 'Pendente',
+          r.registradoPor,
+          r.timestamp
+        ];
       }),
       styles: { fontSize: 9, cellPadding: 5, textColor: [26, 26, 26] },
       headStyles: { fillColor: [122, 46, 46], textColor: [255, 255, 255], fontStyle: 'bold' },
@@ -267,7 +327,7 @@
   apiListar(getPin()).then(function(resp) {
     if (!resp.ok) {
       document.getElementById('tabela-corpo').innerHTML =
-        '<tr><td colspan="7" class="vazio">' + (resp.erro || 'Erro ao carregar dados.') + '</td></tr>';
+        '<tr><td colspan="8" class="vazio">' + (resp.erro || 'Erro ao carregar dados.') + '</td></tr>';
       return;
     }
     TODAS_SOLICITACOES = resp.solicitacoes;
@@ -277,7 +337,7 @@
     aplicarFiltros();
   }).catch(function() {
     document.getElementById('tabela-corpo').innerHTML =
-      '<tr><td colspan="7" class="vazio">Não foi possível conectar. Verifique sua internet.</td></tr>';
+      '<tr><td colspan="8" class="vazio">Não foi possível conectar. Verifique sua internet.</td></tr>';
   });
 </script>
 </body>

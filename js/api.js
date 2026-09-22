@@ -51,6 +51,13 @@ function apiExcluir(pin, id) {
   });
 }
 
+function apiMarcarAtendida(pin, id, atendida) {
+  return supabaseClient.rpc('marcar_atendida', { p_pin: pin, p_id: id, p_atendida: atendida }).then(function(resp) {
+    if (resp.error) throw resp.error;
+    return resp.data;
+  });
+}
+
 function apiListar(pin) {
   return supabaseClient.rpc('listar_solicitacoes', { p_pin: pin }).then(function(resp) {
     if (resp.error) throw resp.error;
