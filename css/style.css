@@ -212,7 +212,25 @@ textarea.field{
   box-shadow: 0 1px 6px rgba(122,46,46,0.08);
   overflow-x: auto;
 }
-table{ width: 100%; border-collapse: collapse; min-width: 700px; }
+table{ width: 100%; border-collapse: collapse; min-width: 780px; }
+
+.acoes-cell{ display: flex; gap: 8px; }
+.icon-btn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-text-muted);
+  cursor: pointer;
+  padding: 0;
+}
+.icon-btn:hover{ background: var(--c-bg); color: var(--c-text); }
+.icon-btn.excluir:hover{ background: #FBEAEA; color: var(--c-danger); border-color: #F3C6C6; }
+.icon-btn:disabled{ opacity: 0.5; cursor: not-allowed; }
 th{
   text-align: left;
   font-size: 12px;

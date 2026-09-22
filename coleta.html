@@ -14,7 +14,7 @@
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>
   </a>
   <div>
-    <div class="titulo">Nova Solicitação</div>
+    <div class="titulo" id="titulo-tela">Nova Solicitação</div>
     <div class="subtitulo">Coletado por: <span id="nome-coletor">—</span></div>
   </div>
 </div>
@@ -83,6 +83,28 @@
   exigirLogin();
   document.getElementById('nome-coletor').textContent = getNomeSessao();
 
+  // Se veio do botão "Editar" no painel, o registro chega aqui via
+  // sessionStorage. Consumimos ele uma vez (removemos logo em
+  // seguida) para não ficar "preso" em modo edição se a pessoa
+  // voltar depois para cadastrar uma solicitação nova de verdade.
+  let edicaoId = null;
+  const dadosEdicao = sessionStorage.getItem('cd_edicao');
+  if (dadosEdicao) {
+    const registro = JSON.parse(dadosEdicao);
+    sessionStorage.removeItem('cd_edicao');
+    edicaoId = registro.id;
+
+    document.getElementById('titulo-tela').textContent = 'Editar Solicitação';
+    document.getElementById('nome').value = registro.nome || '';
+    document.getElementById('endereco').value = registro.endereco || '';
+    document.getElementById('bairro').value = registro.bairro || '';
+    document.getElementById('telefone').value = registro.telefone || '';
+    document.getElementById('tipo').value = registro.tipo || '';
+    document.getElementById('detalhe').value = registro.detalhe || '';
+    document.getElementById('observacoes').value = registro.observacoes || '';
+    document.getElementById('btn-salvar').textContent = 'Salvar Alterações';
+  }
+
   document.getElementById('form-coleta').addEventListener('submit', function(e) {
     e.preventDefault();
     const btn = document.getElementById('btn-salvar');
@@ -108,21 +130,29 @@
     }
 
     btn.disabled = true;
-    btn.textContent = 'Salvando...';
+    btn.textContent = edicaoId ? 'Salvando alterações...' : 'Salvando...';
 
-    apiSalvar(dados).then(function(resp) {
+    const chamada = edicaoId
+      ? apiEditar(Object.assign({ id: edicaoId }, dados))
+      : apiSalvar(dados);
+
+    chamada.then(function(resp) {
       btn.disabled = false;
-      btn.textContent = 'Salvar Solicitação';
+      btn.textContent = edicaoId ? 'Salvar Alterações' : 'Salvar Solicitação';
       if (resp.ok) {
-        msgSucesso.textContent = 'Solicitação registrada com sucesso!';
-        document.getElementById('form-coleta').reset();
+        msgSucesso.textContent = edicaoId
+          ? 'Solicitação atualizada com sucesso!'
+          : 'Solicitação registrada com sucesso!';
+        if (!edicaoId) {
+          document.getElementById('form-coleta').reset();
+        }
         document.getElementById('link-painel').style.display = 'flex';
       } else {
         msgErro.textContent = resp.erro || 'Não foi possível salvar.';
       }
     }).catch(function() {
       btn.disabled = false;
-      btn.textContent = 'Salvar Solicitação';
+      btn.textContent = edicaoId ? 'Salvar Alterações' : 'Salvar Solicitação';
       msgErro.textContent = 'Não foi possível conectar. Verifique sua internet.';
     });
   });

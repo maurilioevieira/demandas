@@ -64,10 +64,11 @@
           <th>Solicitação</th>
           <th>Registrado por</th>
           <th>Data</th>
+          <th class="no-print">Ações</th>
         </tr>
       </thead>
       <tbody id="tabela-corpo">
-        <tr><td colspan="6" class="vazio">Carregando...</td></tr>
+        <tr><td colspan="7" class="vazio">Carregando...</td></tr>
       </tbody>
     </table>
   </div>
@@ -90,7 +91,10 @@
   });
 
   let TODAS_SOLICITACOES = [];
-  let LISTA_FILTRADA = []; // sempre em sincronia com o que está na tela e o que vai pro PDF
+  let LISTA_FILTRADA = [];
+
+  const ICONE_EDITAR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>';
+  const ICONE_EXCLUIR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>';
 
   function textoTipo(r) {
     return r.detalhe ? (r.tipo + ' — ' + r.detalhe) : r.tipo;
@@ -116,7 +120,7 @@
     corpo.innerHTML = '';
 
     if (lista.length === 0) {
-      corpo.innerHTML = '<tr><td colspan="6" class="vazio">Nenhuma solicitação encontrada.</td></tr>';
+      corpo.innerHTML = '<tr><td colspan="7" class="vazio">Nenhuma solicitação encontrada.</td></tr>';
       return;
     }
 
@@ -128,7 +132,11 @@
         '<td>' + r.bairro + '</td>' +
         '<td>' + textoTipo(r) + '</td>' +
         '<td><span class="badge">' + r.registradoPor + '</span></td>' +
-        '<td>' + r.timestamp + '</td>';
+        '<td>' + r.timestamp + '</td>' +
+        '<td class="acoes-cell no-print">' +
+          '<button class="icon-btn editar" data-id="' + r.id + '" aria-label="Editar solicitação de ' + r.nome + '">' + ICONE_EDITAR + '</button>' +
+          '<button class="icon-btn excluir" data-id="' + r.id + '" aria-label="Excluir solicitação de ' + r.nome + '">' + ICONE_EXCLUIR + '</button>' +
+        '</td>';
       corpo.appendChild(tr);
     });
   }
@@ -181,12 +189,50 @@
   document.getElementById('filtro-busca').addEventListener('input', aplicarFiltros);
 
   /**
-   * Gera o PDF direto no navegador com jsPDF + AutoTable, usando
-   * exatamente a lista que está filtrada na tela no momento do
-   * clique — ou seja, exporta o que a pessoa está vendo, não tudo.
-   * Isso evita depender do "Salvar como PDF" do sistema, que no
-   * celular varia muito de aparelho para aparelho.
+   * Editar/excluir usam "delegação de evento": em vez de colocar um
+   * listener em cada botão (que teria que ser refeito toda vez que
+   * a tabela é redesenhada), um único listener no <tbody> escuta
+   * cliques em qualquer botão dentro dele, identificando qual pela
+   * classe e pelo data-id.
    */
+  document.getElementById('tabela-corpo').addEventListener('click', function(e) {
+    const btnEditar = e.target.closest('.icon-btn.editar');
+    const btnExcluir = e.target.closest('.icon-btn.excluir');
+
+    if (btnEditar) {
+      const id = Number(btnEditar.dataset.id);
+      const registro = TODAS_SOLICITACOES.find(function(r) { return r.id === id; });
+      if (registro) {
+        sessionStorage.setItem('cd_edicao', JSON.stringify(registro));
+        window.location.href = 'coleta.html';
+      }
+      return;
+    }
+
+    if (btnExcluir) {
+      const id = Number(btnExcluir.dataset.id);
+      const registro = TODAS_SOLICITACOES.find(function(r) { return r.id === id; });
+      if (!registro) return;
+
+      const confirmar = window.confirm('Excluir a solicitação de ' + registro.nome + '? Essa ação não pode ser desfeita.');
+      if (!confirmar) return;
+
+      btnExcluir.disabled = true;
+      apiExcluir(getPin(), id).then(function(resp) {
+        if (resp.ok) {
+          TODAS_SOLICITACOES = TODAS_SOLICITACOES.filter(function(r) { return r.id !== id; });
+          aplicarFiltros();
+        } else {
+          alert(resp.erro || 'Não foi possível excluir.');
+          btnExcluir.disabled = false;
+        }
+      }).catch(function() {
+        alert('Não foi possível conectar. Verifique sua internet.');
+        btnExcluir.disabled = false;
+      });
+    }
+  });
+
   function exportarPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape' });
@@ -221,7 +267,7 @@
   apiListar(getPin()).then(function(resp) {
     if (!resp.ok) {
       document.getElementById('tabela-corpo').innerHTML =
-        '<tr><td colspan="6" class="vazio">' + (resp.erro || 'Erro ao carregar dados.') + '</td></tr>';
+        '<tr><td colspan="7" class="vazio">' + (resp.erro || 'Erro ao carregar dados.') + '</td></tr>';
       return;
     }
     TODAS_SOLICITACOES = resp.solicitacoes;
@@ -231,7 +277,7 @@
     aplicarFiltros();
   }).catch(function() {
     document.getElementById('tabela-corpo').innerHTML =
-      '<tr><td colspan="6" class="vazio">Não foi possível conectar. Verifique sua internet.</td></tr>';
+      '<tr><td colspan="7" class="vazio">Não foi possível conectar. Verifique sua internet.</td></tr>';
   });
 </script>
 </body>

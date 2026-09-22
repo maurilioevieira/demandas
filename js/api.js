@@ -1,8 +1,6 @@
 /**
- * Cliente Supabase e as três chamadas que o site usa.
- * Cada uma delas chama diretamente uma função (RPC) do banco —
- * não existe mais nenhum "action" genérico como no Apps Script,
- * cada função tem seu próprio nome do lado do Supabase.
+ * Cliente Supabase e as chamadas que o site usa. Cada função aqui
+ * corresponde a uma função (RPC) do banco.
  */
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -24,6 +22,30 @@ function apiSalvar(dados) {
     p_detalhe: dados.detalhe,
     p_observacoes: dados.observacoes
   }).then(function(resp) {
+    if (resp.error) throw resp.error;
+    return resp.data;
+  });
+}
+
+function apiEditar(dados) {
+  return supabaseClient.rpc('editar_solicitacao', {
+    p_pin: dados.pin,
+    p_id: dados.id,
+    p_nome: dados.nomeEleitor,
+    p_endereco: dados.endereco,
+    p_bairro: dados.bairro,
+    p_telefone: dados.telefone,
+    p_tipo: dados.tipo,
+    p_detalhe: dados.detalhe,
+    p_observacoes: dados.observacoes
+  }).then(function(resp) {
+    if (resp.error) throw resp.error;
+    return resp.data;
+  });
+}
+
+function apiExcluir(pin, id) {
+  return supabaseClient.rpc('excluir_solicitacao', { p_pin: pin, p_id: id }).then(function(resp) {
     if (resp.error) throw resp.error;
     return resp.data;
   });
