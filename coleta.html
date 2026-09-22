@@ -10,7 +10,7 @@
 <body>
 
 <div class="top-bar">
-  <a href="menu.html" aria-label="Voltar">
+  <a href="painel.html" aria-label="Voltar ao painel">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>
   </a>
   <div>
@@ -70,10 +70,12 @@
     <button type="submit" class="btn" id="btn-salvar" style="margin-top:8px;">Salvar Solicitação</button>
     <div class="error-msg" id="msg-erro"></div>
     <div class="success-msg" id="msg-sucesso"></div>
+    <a href="painel.html" class="btn btn-secondary" id="link-painel" style="display:none;">Voltar ao Painel</a>
 
   </form>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/config.js"></script>
 <script src="js/api.js"></script>
 <script src="js/session.js"></script>
@@ -108,12 +110,13 @@
     btn.disabled = true;
     btn.textContent = 'Salvando...';
 
-    chamarAPI('salvar', dados).then(function(resp) {
+    apiSalvar(dados).then(function(resp) {
       btn.disabled = false;
       btn.textContent = 'Salvar Solicitação';
       if (resp.ok) {
         msgSucesso.textContent = 'Solicitação registrada com sucesso!';
         document.getElementById('form-coleta').reset();
+        document.getElementById('link-painel').style.display = 'flex';
       } else {
         msgErro.textContent = resp.erro || 'Não foi possível salvar.';
       }

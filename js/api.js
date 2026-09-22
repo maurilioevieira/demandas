@@ -1,20 +1,37 @@
 /**
- * Chama o backend (Apps Script) com uma ação e os dados dela.
- * Usamos "text/plain" no Content-Type de propósito: o Apps Script
- * não lida bem com "application/json" em requisições vindas de
- * outro domínio (o navegador faz uma checagem extra, o "preflight",
- * que o Apps Script não responde corretamente). Enviando como texto
- * simples, essa checagem não acontece e a chamada funciona direto.
+ * Cliente Supabase e as três chamadas que o site usa.
+ * Cada uma delas chama diretamente uma função (RPC) do banco —
+ * não existe mais nenhum "action" genérico como no Apps Script,
+ * cada função tem seu próprio nome do lado do Supabase.
  */
-function chamarAPI(action, dados) {
-  dados = dados || {};
-  const corpo = Object.assign({ action: action }, dados);
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  return fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(corpo)
-  }).then(function(resposta) {
-    return resposta.json();
+function apiLogin(pin) {
+  return supabaseClient.rpc('fazer_login', { p_pin: pin }).then(function(resp) {
+    if (resp.error) throw resp.error;
+    return resp.data;
+  });
+}
+
+function apiSalvar(dados) {
+  return supabaseClient.rpc('salvar_solicitacao', {
+    p_pin: dados.pin,
+    p_nome: dados.nomeEleitor,
+    p_endereco: dados.endereco,
+    p_bairro: dados.bairro,
+    p_telefone: dados.telefone,
+    p_tipo: dados.tipo,
+    p_detalhe: dados.detalhe,
+    p_observacoes: dados.observacoes
+  }).then(function(resp) {
+    if (resp.error) throw resp.error;
+    return resp.data;
+  });
+}
+
+function apiListar(pin) {
+  return supabaseClient.rpc('listar_solicitacoes', { p_pin: pin }).then(function(resp) {
+    if (resp.error) throw resp.error;
+    return resp.data;
   });
 }
