@@ -302,21 +302,28 @@
 
     doc.autoTable({
       startY: 30,
-      head: [['Nome', 'Endereço', 'Bairro', 'Solicitação', 'Status', 'Registrado por', 'Data']],
+      head: [['Nome', 'Telefone', 'Endereço', 'Bairro', 'Solicitação', 'Status']],
       body: LISTA_FILTRADA.map(function(r) {
         return [
           r.nome,
+          r.telefone || '—',
           r.endereco || '—',
           r.bairro,
           textoTipo(r),
-          r.atendida ? ('Atendida em ' + r.atendidaEm) : 'Pendente',
-          r.registradoPor,
-          r.timestamp
+          r.atendida ? ('Atendida em ' + r.atendidaEm) : 'Pendente'
         ];
       }),
-      styles: { fontSize: 9, cellPadding: 5, textColor: [26, 26, 26] },
+      styles: { fontSize: 9, cellPadding: 5, textColor: [26, 26, 26], overflow: 'linebreak' },
       headStyles: { fillColor: [122, 46, 46], textColor: [255, 255, 255], fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [247, 245, 240] }
+      alternateRowStyles: { fillColor: [247, 245, 240] },
+      columnStyles: {
+        0: { cellWidth: 34 }, // Nome
+        1: { cellWidth: 34 }, // Telefone — mais largo para não quebrar linha
+        2: { cellWidth: 38 }, // Endereço
+        3: { cellWidth: 24 }, // Bairro
+        4: { cellWidth: 'auto' }, // Solicitação — fica com o espaço que sobrar
+        5: { cellWidth: 28 }  // Status
+      }
     });
 
     doc.save('solicitacoes-' + dataAtual.replace(/\//g, '-') + '.pdf');
