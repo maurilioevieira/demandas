@@ -1,12 +1,11 @@
 /* =========================================================
    COLETOR DE DEMANDAS — ALMINO
    Todas as cores e fontes ficam centralizadas aqui em cima.
-   Para trocar o tema (ex.: azul -> vermelho), troque só o
-   valor de --c-accent e --c-accent-dark abaixo.
+   Para trocar o tema, troque só --c-accent e --c-accent-dark.
    ========================================================= */
 :root{
-  --c-accent: #1E3A5F;
-  --c-accent-dark: #16293F;
+  --c-accent: #7A2E2E;
+  --c-accent-dark: #5C2222;
   --c-accent-contrast: #FFFFFF;
 
   --c-bg: #F7F5F0;
@@ -84,7 +83,7 @@ a{ color: inherit; }
   background: var(--c-surface);
   border-radius: 16px;
   padding: 28px 24px;
-  box-shadow: 0 2px 16px rgba(30,58,95,0.10);
+  box-shadow: 0 2px 16px rgba(122,46,46,0.12);
 }
 
 label{
@@ -183,7 +182,7 @@ textarea.field{
   background: var(--c-surface);
   border-radius: 12px;
   padding: 18px 20px;
-  box-shadow: 0 1px 6px rgba(30,58,95,0.06);
+  box-shadow: 0 1px 6px rgba(122,46,46,0.08);
   border-left: 4px solid var(--c-accent);
 }
 .stat-card .label{ font-size: 13px; color: var(--c-label); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -210,7 +209,7 @@ textarea.field{
 .tabela-wrap{
   background: var(--c-surface);
   border-radius: 12px;
-  box-shadow: 0 1px 6px rgba(30,58,95,0.06);
+  box-shadow: 0 1px 6px rgba(122,46,46,0.08);
   overflow-x: auto;
 }
 table{ width: 100%; border-collapse: collapse; min-width: 700px; }
@@ -239,12 +238,11 @@ tr:last-child td{ border-bottom: none; }
 
 .vazio{ text-align: center; padding: 40px 20px; color: var(--c-label); }
 
-/* ---------- Impressão (Exportar PDF) ----------
-   O relatório impresso usa um estilo diferente do que aparece
-   na tela: cabeçalho com fundo cinza claro para se destacar, e
-   bordas em todas as células (linhas e colunas) para ficar mais
-   fácil de ler quando impresso ou salvo em PDF (sem o azul de
-   fundo do site, que gastaria muita tinta à toa).
+/* ---------- Impressão (fallback: Ctrl+P) ----------
+   A exportação principal agora gera o PDF direto via JavaScript
+   (botão Exportar PDF). Essas regras continuam aqui só como
+   reforço, caso alguém use o atalho de impressão do navegador
+   manualmente em vez do botão.
    ========================================================= */
 @media print{
   .no-print{ display: none !important; }

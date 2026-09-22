@@ -75,6 +75,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf-autotable.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/api.js"></script>
 <script src="js/session.js"></script>
@@ -88,6 +90,7 @@
   });
 
   let TODAS_SOLICITACOES = [];
+  let LISTA_FILTRADA = []; // sempre em sincronia com o que está na tela e o que vai pro PDF
 
   function textoTipo(r) {
     return r.detalhe ? (r.tipo + ' — ' + r.detalhe) : r.tipo;
@@ -157,7 +160,7 @@
     const coletor = document.getElementById('filtro-coletor').value;
     const busca = document.getElementById('filtro-busca').value.trim().toLowerCase();
 
-    const filtradas = TODAS_SOLICITACOES.filter(function(r) {
+    LISTA_FILTRADA = TODAS_SOLICITACOES.filter(function(r) {
       if (bairro && r.bairro !== bairro) return false;
       if (tipo && r.tipo !== tipo) return false;
       if (coletor && r.registradoPor !== coletor) return false;
@@ -168,8 +171,8 @@
       return true;
     });
 
-    renderTabela(filtradas);
-    calcularEstatisticas(filtradas);
+    renderTabela(LISTA_FILTRADA);
+    calcularEstatisticas(LISTA_FILTRADA);
   }
 
   ['filtro-bairro', 'filtro-tipo', 'filtro-coletor'].forEach(function(id) {
@@ -177,9 +180,43 @@
   });
   document.getElementById('filtro-busca').addEventListener('input', aplicarFiltros);
 
-  document.getElementById('btn-exportar').addEventListener('click', function() {
-    window.print();
-  });
+  /**
+   * Gera o PDF direto no navegador com jsPDF + AutoTable, usando
+   * exatamente a lista que está filtrada na tela no momento do
+   * clique — ou seja, exporta o que a pessoa está vendo, não tudo.
+   * Isso evita depender do "Salvar como PDF" do sistema, que no
+   * celular varia muito de aparelho para aparelho.
+   */
+  function exportarPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape' });
+    const dataAtual = new Date().toLocaleDateString('pt-BR');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(26, 26, 26);
+    doc.text('Painel de Solicitações', 14, 18);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(120, 120, 120);
+    doc.text('Gerado em ' + dataAtual + ' · ' + LISTA_FILTRADA.length + ' solicitação(ões)', 14, 24);
+
+    doc.autoTable({
+      startY: 30,
+      head: [['Nome', 'Endereço', 'Bairro', 'Solicitação', 'Registrado por', 'Data']],
+      body: LISTA_FILTRADA.map(function(r) {
+        return [r.nome, r.endereco || '—', r.bairro, textoTipo(r), r.registradoPor, r.timestamp];
+      }),
+      styles: { fontSize: 9, cellPadding: 5, textColor: [26, 26, 26] },
+      headStyles: { fillColor: [122, 46, 46], textColor: [255, 255, 255], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [247, 245, 240] }
+    });
+
+    doc.save('solicitacoes-' + dataAtual.replace(/\//g, '-') + '.pdf');
+  }
+
+  document.getElementById('btn-exportar').addEventListener('click', exportarPDF);
 
   apiListar(getPin()).then(function(resp) {
     if (!resp.ok) {
@@ -191,8 +228,7 @@
     preencherFiltro('filtro-bairro', valoresUnicos(TODAS_SOLICITACOES, 'bairro'));
     preencherFiltro('filtro-tipo', valoresUnicos(TODAS_SOLICITACOES, 'tipo'));
     preencherFiltro('filtro-coletor', valoresUnicos(TODAS_SOLICITACOES, 'registradoPor'));
-    renderTabela(TODAS_SOLICITACOES);
-    calcularEstatisticas(TODAS_SOLICITACOES);
+    aplicarFiltros();
   }).catch(function() {
     document.getElementById('tabela-corpo').innerHTML =
       '<tr><td colspan="6" class="vazio">Não foi possível conectar. Verifique sua internet.</td></tr>';
