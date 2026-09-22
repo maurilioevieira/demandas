@@ -239,10 +239,35 @@ tr:last-child td{ border-bottom: none; }
 
 .vazio{ text-align: center; padding: 40px 20px; color: var(--c-label); }
 
-/* ---------- Impressão (Exportar PDF) ---------- */
+/* ---------- Impressão (Exportar PDF) ----------
+   O relatório impresso usa um estilo diferente do que aparece
+   na tela: cabeçalho com fundo cinza claro para se destacar, e
+   bordas em todas as células (linhas e colunas) para ficar mais
+   fácil de ler quando impresso ou salvo em PDF (sem o azul de
+   fundo do site, que gastaria muita tinta à toa).
+   ========================================================= */
 @media print{
   .no-print{ display: none !important; }
   .painel-wrap{ padding: 0; max-width: none; }
-  .tabela-wrap{ box-shadow: none; }
   body{ background: #FFFFFF; }
+
+  .stats-grid{ margin-bottom: 18px; }
+  .stat-card{ box-shadow: none; border: 1px solid var(--c-border); }
+
+  .tabela-wrap{ box-shadow: none; overflow: visible; }
+  table{ border: 1px solid #C9C6BC; }
+
+  th{
+    background: #EAE8E1;
+    color: var(--c-text);
+    border: 1px solid #C9C6BC;
+    padding: 10px 12px;
+  }
+  td{
+    border: 1px solid #DAD7CE;
+    padding: 10px 12px;
+  }
+  tr:last-child td{ border-bottom: 1px solid #DAD7CE; }
+
+  .badge{ background: none; padding: 0; font-weight: 700; }
 }
